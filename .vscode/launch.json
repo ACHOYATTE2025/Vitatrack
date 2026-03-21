@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-Application<VistaTrack>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.portfolio.VistaTrack.Application",
+            "projectName": "VistaTrack",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

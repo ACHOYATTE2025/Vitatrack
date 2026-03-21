@@ -1,0 +1,59 @@
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+    min-response-size: 128
+  servlet:
+    context-path: /api/vitatrack/v1
+
+spring:
+  application:
+    name: vitatrack
+
+
+
+groq:
+  api:
+    key: ${ACHO_GROK_APIKEY}
+    url: https://api.groq.com/openai/v1/chat/completions
+    model: llama-3.3-70b-versatile   # ← remplace llama3-8b-8192 qui est décommissionné
+
+  # Firebase Admin SDK — service account key loaded from resources/
+  config:
+    import: optional:classpath:serviceAccountKey.json
+
+  # Disable Flyway — no SQL migrations needed (Firestore is schemaless)
+  flyway:
+    enabled: false
+
+  # Disable Spring Security auto-config — configured manually in SecurityConfig
+  security:
+    enabled: false
+
+  # Disable SQL auto-init — no relational database in this project
+  sql:
+    init:
+      mode: never
+
+# JWT — secret injected from environment variable, expiration set to 24h
+jwt:
+  key: ${JWT_KEY}
+  expiration: 86400000
+
+# Actuator — expose all endpoints, show full health details
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+# Application metadata (visible via /actuator/info)
+info:
+  app:
+    name: vitatrack
+    description: Health and fitness tracking app
+    version: 1.0.0
