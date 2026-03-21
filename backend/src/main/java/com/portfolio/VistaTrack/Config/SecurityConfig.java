@@ -1,5 +1,7 @@
 package com.portfolio.VistaTrack.Config;
 
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -10,6 +12,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.portfolio.VistaTrack.Security.JwtAuthFilter;
 
@@ -45,6 +50,7 @@ public class SecurityConfig {
         log.info("[SECURITY] Configuring security filter chain");
 
         http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // ← must be first
             // Disable CSRF — irrelevant for stateless JWT-based APIs
             .csrf(AbstractHttpConfigurer::disable)
 
@@ -89,5 +95,42 @@ public class SecurityConfig {
             throws Exception {
         return config.getAuthenticationManager();
     }
+
+
+    /**
+ * CORS configuration — explicitly allows the React dev server and production URL.
+ * withCredentials is false so we use allowedOrigins (not allowedOriginPatterns).
+ */
+@Bean
+public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration config = new CorsConfiguration();
+
+    // Allowed origins — add your Railway/Vercel URL here when deploying
+    config.setAllowedOrigins(List.of(
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000"
+    ));
+
+    config.setAllowedMethods(List.of(
+        "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"
+    ));
+
+    config.setAllowedHeaders(List.of(
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With"
+    ));
+
+    config.setExposedHeaders(List.of("Authorization"));
+    config.setAllowCredentials(false);
+    config.setMaxAge(3600L);
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", config);
+    return source;
+}
 }
 
