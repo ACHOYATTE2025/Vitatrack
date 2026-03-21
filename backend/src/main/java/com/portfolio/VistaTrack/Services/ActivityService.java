@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,166 +18,181 @@ import com.portfolio.VistaTrack.Exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+
 /**
- * Handles all activity logging business logic for the VitaTrack application.
+ * Handles all activity business logic for VitaTrack.
  *
- * Responsibilities:
- * 
- *   Log a new activity for the authenticated user
- *   Retrieve all activities belonging to a specific user
- *   Retrieve a single activity by its ID
- *   Delete an activity owned by the authenticated user
- * 
- * 
+ * Activities are stored as a subcollection of their parent health metric:
+ *   health_metrics/{metricId}/activities/{activityId}
  *
- * All data is persisted in the Firestore "activities" collection.
- * Each document is keyed by a generated UUID and contains a userId field
- * linking it back to the user who logged it.
+ * This reflects the 1-to-many relationship: one health session can have
+ * multiple associated physical activities.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ActivityService {
 
-    private final FirestoreService firestoreService;
+    private final com.google.cloud.firestore.Firestore firestore;
 
-    private static final String ACTIVITIES_COLLECTION = "activities";
+    private static final String METRICS_COLLECTION    = "health_metrics";
+    private static final String ACTIVITIES_SUBCOLLECTION = "activities";
 
     // ── LOG ACTIVITY ───────────────────────────────────────────────────────────
 
     /**
-     * Logs a new physical activity for the authenticated user.
+     * Logs a new physical activity under an existing health metric.
      *
-     * Steps:
-     * 
-     *   Generate a unique activity ID
-     *   Build the Firestore document from the request DTO
-     *   Persist it in Firestore under the "activities" collection
-     *   Return HTTP 201 with a confirmation message
-     * 
-     * 
+     * The activity is stored as a document in the subcollection:
+     * health_metrics/{metricId}/activities/{activityId}
      *
-     * @param request DTO containing activity type, duration, and calories
-     * @param userId  the authenticated user's ID extracted from the JWT
-     * @return ResponseEntity with HTTP 201 and a confirmation message
+     * @param request  DTO containing activity type, duration, and calories
+     * @param metricId the parent health metric this activity belongs to
+     * @param userId   the authenticated user's ID — used to verify metric ownership
+     * @return ResponseEntity with HTTP 201 and the new activity ID
      */
-    public ResponseEntity<ResponseDto> logActivity(ActivityRequestDto request, String userId) {
-        log.info("[ACTIVITY] Logging new activity for userId: {} | type: {}",
-                userId, request.getType());
+    public ResponseEntity<ResponseDto> logActivity(
+            ActivityRequestDto request, String metricId, String userId) {
 
-        // ── 1. Generate a unique ID for this activity ──────────────────────────
-        String activityId = UUID.randomUUID().toString();
+        log.info("[ACTIVITY] Logging activity for metricId: {} | userId: {}", metricId, userId);
 
-        // ── 2. Build the Firestore document ────────────────────────────────────
-        Map<String, Object> activityDocument = new HashMap<>();
-        activityDocument.put("id",              activityId);
-        activityDocument.put("userId",          userId);               // links to the user
-        activityDocument.put("type",            request.getType());    // e.g. running, cycling
-        activityDocument.put("durationMinutes", request.getDurationMinutes());
-        activityDocument.put("caloriesBurned",  request.getCaloriesBurned());
-        activityDocument.put("notes",           request.getNotes());   // optional free-text
-        activityDocument.put("loggedAt",        Instant.now().toString()); // ISO-8601 timestamp
+        try {
+            // ── 1. Verify the parent metric exists and belongs to this user ──────
+            var metricDoc = firestore.collection(METRICS_COLLECTION)
+                    .document(metricId).get().get();
 
-        // ── 3. Persist in Firestore ────────────────────────────────────────────
-        firestoreService.save(ACTIVITIES_COLLECTION, activityId, activityDocument);
-        log.info("[ACTIVITY] Activity logged successfully — activityId: {} | userId: {}",
-                activityId, userId);
+            if (!metricDoc.exists()) {
+                log.warn("[ACTIVITY] Parent metric not found — metricId: {}", metricId);
+                throw new ResourceNotFoundException("Health metric not found with id: " + metricId);
+            }
 
-        // ── 4. Return 201 Created ──────────────────────────────────────────────
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(new ResponseDto(201, "Activity logged successfully", activityId));
-    }
+            String ownerUserId = (String) metricDoc.getData().get("userId");
+            if (!userId.equals(ownerUserId)) {
+                log.warn("[ACTIVITY] Ownership check failed for metricId: {}", metricId);
+                throw new RuntimeException("Access denied — this metric does not belong to you");
+            }
 
-    // ── GET ALL ACTIVITIES FOR A USER ──────────────────────────────────────────
+            // ── 2. Build the activity document ─────────────────────────────────
+            String activityId = UUID.randomUUID().toString();
+            Map<String, Object> activityDoc = new HashMap<>();
+            activityDoc.put("id",              activityId);
+            activityDoc.put("metricId",        metricId);       // parent reference
+            activityDoc.put("userId",          userId);
+            activityDoc.put("type",            request.getType());
+            activityDoc.put("durationMinutes", request.getDurationMinutes());
+            activityDoc.put("caloriesBurned",  request.getCaloriesBurned());
+            activityDoc.put("notes",           request.getNotes());
+            activityDoc.put("loggedAt",        Instant.now().toString());
 
-    /**
-     * Retrieves all activity logs belonging to the authenticated user.
-     *
-     * @param userId the authenticated user's ID extracted from the JWT
-     * @return ResponseEntity with HTTP 200 and the list of activity documents
-     */
-    public ResponseEntity<List<Map<String, Object>>> getUserActivities(String userId) {
-        log.info("[ACTIVITY] Fetching all activities for userId: {}", userId);
+            // ── 3. Save in subcollection health_metrics/{metricId}/activities/ ──
+            firestore.collection(METRICS_COLLECTION)
+                    .document(metricId)
+                    .collection(ACTIVITIES_SUBCOLLECTION)
+                    .document(activityId)
+                    .set(activityDoc)
+                    .get();
 
-        // Query Firestore for all documents where userId matches
-        List<Map<String, Object>> activities = firestoreService.findByField(
-                ACTIVITIES_COLLECTION, "userId", userId
-        );
+            log.info("[ACTIVITY] Activity logged — activityId: {} under metricId: {}",
+                    activityId, metricId);
 
-        log.info("[ACTIVITY] Found {} activity/activities for userId: {}",
-                activities.size(), userId);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(new ResponseDto(201, "Activity logged successfully", activityId));
 
-        return ResponseEntity.ok(activities);
-    }
-
-    // ── GET SINGLE ACTIVITY ────────────────────────────────────────────────────
-
-    /**
-     * Retrieves a single activity by its ID.
-     * Verifies that the activity belongs to the requesting user before returning it.
-     *
-     * @param activityId the activity document ID to retrieve
-     * @param userId     the authenticated user's ID — used to verify ownership
-     * @return ResponseEntity with HTTP 200 and the activity document
-     * @throws ResourceNotFoundException if the activity does not exist
-     * @throws RuntimeException          if the activity belongs to a different user
-     */
-    public ResponseEntity<Map<String, Object>> getActivityById(String activityId, String userId) {
-        log.info("[ACTIVITY] Fetching activity — activityId: {} | userId: {}", activityId, userId);
-
-        // ── 1. Fetch the document from Firestore ───────────────────────────────
-        Map<String, Object> activity = firestoreService.findById(ACTIVITIES_COLLECTION, activityId)
-                .orElseThrow(() -> {
-                    log.warn("[ACTIVITY] Activity not found — activityId: {}", activityId);
-                    return new ResourceNotFoundException("Activity not found with id: " + activityId);
-                });
-
-        // ── 2. Verify ownership — users can only access their own data ─────────
-        if (!userId.equals(activity.get("userId"))) {
-            log.warn("[ACTIVITY] Ownership check failed — activityId: {} does not belong to userId: {}",
-                    activityId, userId);
-            throw new RuntimeException("Access denied — this activity does not belong to you");
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("[ACTIVITY] Failed to log activity: {}", e.getMessage());
+            throw new RuntimeException("Failed to log activity: " + e.getMessage());
         }
-
-        log.info("[ACTIVITY] Activity retrieved successfully — activityId: {}", activityId);
-        return ResponseEntity.ok(activity);
     }
 
+    // ── GET ALL ACTIVITIES FOR A METRIC ────────────────────────────────────────
+
+    /**
+     * Returns all activities logged under a specific health metric.
+     *
+     * @param metricId the parent health metric ID
+     * @param userId   the authenticated user's ID — used to verify ownership
+     * @return ResponseEntity with HTTP 200 and the list of activities
+     */
+    public ResponseEntity<List<Map<String, Object>>> getActivitiesForMetric(
+            String metricId, String userId) {
+
+        log.info("[ACTIVITY] Fetching activities for metricId: {} | userId: {}", metricId, userId);
+
+        try {
+            // Verify ownership of the parent metric
+            var metricDoc = firestore.collection(METRICS_COLLECTION)
+                    .document(metricId).get().get();
+
+            if (!metricDoc.exists()) {
+                throw new ResourceNotFoundException("Health metric not found: " + metricId);
+            }
+            if (!userId.equals(metricDoc.getData().get("userId"))) {
+                throw new RuntimeException("Access denied");
+            }
+
+            // Fetch all documents from the subcollection
+            var activities = firestore.collection(METRICS_COLLECTION)
+                    .document(metricId)
+                    .collection(ACTIVITIES_SUBCOLLECTION)
+                    .get().get()
+                    .getDocuments()
+                    .stream()
+                    .map(doc -> doc.getData())
+                    .toList();
+
+            log.info("[ACTIVITY] Found {} activity/activities for metricId: {}",
+                    activities.size(), metricId);
+            return ResponseEntity.ok(activities);
+
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("[ACTIVITY] Failed to fetch activities: {}", e.getMessage());
+            throw new RuntimeException("Failed to fetch activities: " + e.getMessage());
+        }
+    }
 
     // ── DELETE ACTIVITY ────────────────────────────────────────────────────────
 
     /**
-     * Deletes an activity by its ID.
-     * Verifies ownership before deleting — users can only delete their own activities.
+     * Deletes a specific activity from a health metric's subcollection.
      *
+     * @param metricId   the parent health metric ID
      * @param activityId the activity document ID to delete
-     * @param userId     the authenticated user's ID — used to verify ownership
+     * @param userId     the authenticated user's ID
      * @return ResponseEntity with HTTP 200 and a confirmation message
-     * @throws ResourceNotFoundException if the activity does not exist
-     * @throws RuntimeException          if the activity belongs to a different user
      */
-    public ResponseEntity<ResponseDto> deleteActivity(String activityId, String userId) {
-        log.info("[ACTIVITY] Delete request — activityId: {} | userId: {}", activityId, userId);
+    public ResponseEntity<ResponseDto> deleteActivity(
+            String metricId, String activityId, String userId) {
 
-        // ── 1. Verify the activity exists ──────────────────────────────────────
-        Map<String, Object> activity = firestoreService.findById(ACTIVITIES_COLLECTION, activityId)
-                .orElseThrow(() -> {
-                    log.warn("[ACTIVITY] Delete failed — activity not found: {}", activityId);
-                    return new ResourceNotFoundException("Activity not found with id: " + activityId);
-                });
+        log.info("[ACTIVITY] Delete request — activityId: {} under metricId: {}", activityId, metricId);
 
-        // ── 2. Verify ownership before deleting ────────────────────────────────
-        if (!userId.equals(activity.get("userId"))) {
-            log.warn("[ACTIVITY] Delete denied — activityId: {} does not belong to userId: {}",
-                    activityId, userId);
-            throw new RuntimeException("Access denied — this activity does not belong to you");
+        try {
+            // Verify the activity exists in the subcollection
+            var activityDoc = firestore.collection(METRICS_COLLECTION)
+                    .document(metricId)
+                    .collection(ACTIVITIES_SUBCOLLECTION)
+                    .document(activityId)
+                    .get().get();
+
+            if (!activityDoc.exists()) {
+                throw new ResourceNotFoundException("Activity not found: " + activityId);
+            }
+            if (!userId.equals(activityDoc.getData().get("userId"))) {
+                throw new RuntimeException("Access denied");
+            }
+
+            // Delete from subcollection
+            firestore.collection(METRICS_COLLECTION)
+                    .document(metricId)
+                    .collection(ACTIVITIES_SUBCOLLECTION)
+                    .document(activityId)
+                    .delete().get();
+
+            log.info("[ACTIVITY] Activity deleted — activityId: {}", activityId);
+            return ResponseEntity.ok(new ResponseDto(200, "Activity deleted successfully", null));
+
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("[ACTIVITY] Failed to delete activity: {}", e.getMessage());
+            throw new RuntimeException("Failed to delete activity: " + e.getMessage());
         }
-
-        // ── 3. Delete from Firestore ───────────────────────────────────────────
-        firestoreService.delete(ACTIVITIES_COLLECTION, activityId);
-        log.info("[ACTIVITY] Activity deleted successfully — activityId: {}", activityId);
-
-        return ResponseEntity.ok(new ResponseDto(200, "Activity deleted successfully", ""));
     }
 }

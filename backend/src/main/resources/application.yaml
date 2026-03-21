@@ -12,6 +12,11 @@ spring:
     name: vitatrack
 
 
+# JWT — secret injected from environment variable, expiration set to 24h
+jwt:
+  key: ${JWT_KEY}
+  expiration: 86400000
+
 
 groq:
   api:
@@ -35,11 +40,6 @@ groq:
   sql:
     init:
       mode: never
-
-# JWT — secret injected from environment variable, expiration set to 24h
-jwt:
-  key: ${JWT_KEY}
-  expiration: 86400000
 
 # Actuator — expose all endpoints, show full health details
 management:
