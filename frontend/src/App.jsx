@@ -7,6 +7,7 @@ import Register        from "./Auth/Register";
 import Dashboard       from "./pages/Dashboard";
 import HealthMetrics   from "./pages/HealthMetrics";
 import Recommendations from "./pages/Recommendations";
+import LandingPage from "./pages/Landingpage";
 
 // Redirects to /login if no token in localStorage
 const ProtectedRoute = ({ children }) => {
@@ -19,7 +20,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-
+        <Route path="/" element={<LandingPage />} />
         {/* Public routes — no layout */}
         <Route path="/login"    element={<Login />} />
         <Route path="/register" element={<Register />} />

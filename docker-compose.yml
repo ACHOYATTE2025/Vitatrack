@@ -1,1 +1,44 @@
+version: "3.9"
 
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vitatrack-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - JWT_KEY=${JWT_KEY}
+      - GROQ_API_KEY=${ACHO_GROK_APIKEY}
+      - FIREBASE_CREDENTIALS=${FIREBASE_CREDENTIALS}
+    # ── DNS fix — allows the container to reach Google APIs ──────
+    dns:
+      - 8.8.8.8       # Google DNS primary
+      - 8.8.4.4       # Google DNS secondary
+      - 1.1.1.1       # Cloudflare DNS fallback
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/vitatrack/v1/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8080/api/vitatrack/v1
+    container_name: vitatrack-frontend
+    ports:
+      - "80:80"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped

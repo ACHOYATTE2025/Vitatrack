@@ -1,10 +1,9 @@
-import Navbar from "./Navbarx";
+import Navbar from "./Navbarx";  // ← was "./Navbarx"
 import Footer from "./Footer";
 
 /**
  * Shared layout for all protected pages.
  * Wraps content with the sticky navbar and the footer.
- * Usage: <Layout><YourPage /></Layout>
  */
 export default function Layout({ children }) {
   return (
