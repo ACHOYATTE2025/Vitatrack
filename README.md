@@ -150,7 +150,7 @@ vitatrack/
 │       │   ├── AuthService.java             # Register + login logic
 │       │   ├── ActivityService.java         # Activity business logic
 │       │   ├── HealthMetricService.java     # Health metric business logic
-│       │   └── GroqService.java             # Groq API client (AI recommendations)
+│       │   └── RecommandationService.java             # Groq API client (AI recommendations)
 │       ├── Security/
 │       │   └── JwtAuthFilter.java           # JWT filter (OncePerRequestFilter)
 │       ├── Dto/
