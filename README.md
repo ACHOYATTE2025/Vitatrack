@@ -6,42 +6,78 @@
 [![Vite](https://img.shields.io/badge/Vite-5-646CFF?style=flat-square&logo=vite)](https://vitejs.dev/)
 [![Firestore](https://img.shields.io/badge/Firestore-Cloud-FFCA28?style=flat-square&logo=firebase)](https://firebase.google.com/docs/firestore)
 [![JWT](https://img.shields.io/badge/Auth-JWT-000000?style=flat-square&logo=jsonwebtokens)](https://jwt.io/)
+[![Groq AI](https://img.shields.io/badge/AI-Groq-F55036?style=flat-square&logo=lightning)](https://groq.com/)
 [![Docker](https://img.shields.io/badge/Docker-Hub-2496ED?style=flat-square&logo=docker)](https://hub.docker.com/u/achoyatte2025)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
-> **VitaTrack** is a cloud-native full-stack application for tracking physical activities and health metrics. Built with Spring Boot 3, secured with JWT, powered by Google Cloud Firestore, and fully containerized with Docker.
+> **VitaTrack** is a cloud-native full-stack application for tracking physical activities and health metrics — enriched with **AI-powered recommendations via the Groq API**. Built with Spring Boot 3, secured with JWT, powered by Google Cloud Firestore, and distributed via **Docker Hub**.
 
 ---
 
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
+- [Live Demo & Links](#-live-demo--links)
 - [Architecture](#-architecture)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
-- [Docker Hub — Quick Deploy](#-docker-hub--quick-deploy)
+- [AI Recommendations — Groq API](#-ai-recommendations--groq-api)
+- [Docker Hub — Deploy in 2 minutes](#-docker-hub--deploy-in-2-minutes)
 - [Local Setup (from source)](#-local-setup-from-source)
 - [Environment Variables](#-environment-variables)
 - [API Reference](#-api-reference)
 - [Request & Response Examples](#-request--response-examples)
 - [Firestore Data Structure](#-firestore-data-structure)
 - [Security](#-security)
-- [Deployment](#-deployment)
 - [Author](#-author)
 
 ---
 
 ## 🌟 Overview
 
-VitaTrack lets users register, log physical activities (running, cycling, swimming, etc.), record health metrics (weight, BMI, heart rate, blood pressure), and retrieve their history securely from any device.
+VitaTrack lets users register, log physical activities (running, cycling, swimming, etc.), record health metrics (weight, BMI, heart rate, blood pressure), and receive **personalized AI-generated fitness recommendations** — all secured and stored in the cloud.
 
 **Key design decisions:**
 
-- No relational database — all data lives in **Firestore** collections (serverless, scalable)
+- No relational database — all data lives in **Firestore** collections (serverless, scalable, zero maintenance)
 - Stateless authentication via **JWT** — no sessions, no cookies
 - **Ownership enforcement** on every request — users can only access their own data
 - **BMI is auto-computed** from weight and height on every health metric entry
-- **Fully Dockerized** — run the entire stack with one command via Docker Compose
+- **Groq API** powers instant AI-generated fitness and health recommendations
+- **Fully Dockerized** — the entire stack runs with a single command via Docker Hub images
+
+---
+
+## 🎬 Live Demo & Links
+
+| Resource | Link |
+|---|---|
+| 🐙 GitHub Repository | [github.com/ACHOYATTE2025/Vitatrack](https://github.com/ACHOYATTE2025/Vitatrack) |
+| 🐳 Docker Hub — Backend | [hub.docker.com/r/achoyatte2025/vitatrack-backend](https://hub.docker.com/r/achoyatte2025/vitatrack-backend) |
+| 🐳 Docker Hub — Frontend | [hub.docker.com/r/achoyatte2025/vitatrack-frontend](https://hub.docker.com/r/achoyatte2025/vitatrack-frontend) |
+| 🎥 Demo Video | ▶️ *[Add your YouTube or Loom link here]* |
+
+### 🎥 Video Demonstration
+
+> *(Replace `YOUR_VIDEO_ID` with your actual YouTube video ID once uploaded)*
+
+[![VitaTrack Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+
+> 🎙️ The demo covers: user registration, activity logging, health metric tracking, and AI-powered recommendations from the Groq API.
+
+---
+
+### 📸 Application Screenshots
+
+> *(Drag & drop your screenshots directly into GitHub's editor to add them)*
+
+| Login | Dashboard | Activity Tracker |
+|:---:|:---:|:---:|
+| ![Login](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) | ![Activity](docs/screenshots/activity.png) |
+
+| Health Metrics | AI Recommendations | |
+|:---:|:---:|:---:|
+| ![Health](docs/screenshots/health.png) | ![AI Reco](docs/screenshots/recommendations.png) | |
 
 ---
 
@@ -53,21 +89,24 @@ VitaTrack lets users register, log physical activities (running, cycling, swimmi
 └────────────────────┬────────────────────────────────┘
                      │ HTTP / REST
 ┌────────────────────▼────────────────────────────────┐
-│             Frontend (React + Vite)                 │
-│                  Port 80 (nginx)                    │
-│  Proxies /api/* → backend:8080                      │
+│         Frontend — React + Vite (nginx)             │
+│         Docker: vitatrack-frontend:latest           │
+│      Port 80  ·  Proxies /api/* → backend:8080      │
 └────────────────────┬────────────────────────────────┘
                      │ Internal Docker network
 ┌────────────────────▼────────────────────────────────┐
-│           Backend (Spring Boot 3)                   │
-│                  Port 8080                          │
+│           Backend — Spring Boot 3                   │
+│          Docker: vitatrack-backend:latest           │
 │  Spring Security · JWT Filter · REST Controllers   │
-└────────────────────┬────────────────────────────────┘
-                     │ Firebase Admin SDK
-┌────────────────────▼────────────────────────────────┐
-│          Google Cloud Firestore                     │
-│   users/ · activities/ · health_metrics/            │
-└─────────────────────────────────────────────────────┘
+│            GroqService (AI recommendations)         │
+└──────────┬─────────────────────────┬────────────────┘
+           │ Firebase Admin SDK      │ HTTPS REST
+┌──────────▼──────────┐   ┌─────────▼──────────────┐
+│  Google Firestore   │   │       Groq API          │
+│  users/             │   │  llama-3.3-70b-versatile│
+│  activities/        │   │  instant AI inference   │
+│  health_metrics/    │   └────────────────────────┘
+└─────────────────────┘
 ```
 
 ---
@@ -80,14 +119,13 @@ VitaTrack lets users register, log physical activities (running, cycling, swimmi
 | Framework | Spring Boot | 3.2.5 |
 | Security | Spring Security + JWT (jjwt) | 0.12.3 |
 | Database | Google Cloud Firestore (Firebase Admin SDK) | 9.2.0 |
+| AI Engine | Groq API (`llama-3.3-70b-versatile`) | — |
 | Password hashing | BCrypt | — |
 | Build tool | Maven | 3.8+ |
 | Frontend | React + Vite | 18 / 5 |
 | Web server | Nginx | Alpine |
 | Containerization | Docker + Docker Compose | — |
 | Registry | Docker Hub | — |
-| Backend hosting | Railway | — |
-| Frontend hosting | Vercel | — |
 
 ---
 
@@ -96,23 +134,25 @@ VitaTrack lets users register, log physical activities (running, cycling, swimmi
 ```
 vitatrack/
 ├── backend/
-│   ├── Dockerfile                          # Multi-stage build (Maven → JRE 17)
+│   ├── Dockerfile                           # Multi-stage build (Maven → JRE 17 slim)
 │   └── src/main/java/com/portfolio/VitaTrack/
 │       ├── Config/
-│       │   ├── FirebaseConfig.java         # Firebase Admin SDK initialization
-│       │   └── SecurityConfig.java         # Spring Security + CORS configuration
+│       │   ├── FirebaseConfig.java          # Firebase Admin SDK initialization
+│       │   └── SecurityConfig.java          # Spring Security + CORS configuration
 │       ├── Controllers/
-│       │   ├── AuthController.java         # POST /register, POST /login
-│       │   ├── ActivityController.java     # CRUD /activity
-│       │   └── HealthMetricController.java # CRUD /health
+│       │   ├── AuthController.java          # POST /register, POST /login
+│       │   ├── ActivityController.java      # CRUD /activity
+│       │   ├── HealthMetricController.java  # CRUD /health
+│       │   └── RecommendationController.java# GET /recommendations (Groq AI)
 │       ├── Services/
-│       │   ├── FirestoreService.java       # Generic Firestore CRUD wrapper
-│       │   ├── JwtService.java             # Token generation + validation
-│       │   ├── AuthService.java            # Register + login logic
-│       │   ├── ActivityService.java        # Activity business logic
-│       │   └── HealthMetricService.java    # Health metric business logic
+│       │   ├── FirestoreService.java        # Generic Firestore CRUD wrapper
+│       │   ├── JwtService.java              # Token generation + validation
+│       │   ├── AuthService.java             # Register + login logic
+│       │   ├── ActivityService.java         # Activity business logic
+│       │   ├── HealthMetricService.java     # Health metric business logic
+│       │   └── GroqService.java             # Groq API client (AI recommendations)
 │       ├── Security/
-│       │   └── JwtAuthFilter.java          # JWT filter (OncePerRequestFilter)
+│       │   └── JwtAuthFilter.java           # JWT filter (OncePerRequestFilter)
 │       ├── Dto/
 │       │   ├── SignupRequestDto.java
 │       │   ├── LoginRequestDto.java
@@ -120,52 +160,89 @@ vitatrack/
 │       │   ├── HealthMetricRequestDto.java
 │       │   └── ResponseDto.java
 │       └── Exception/
-│           ├── ApplicationAdvice.java      # Global exception handler
+│           ├── ApplicationAdvice.java       # Global exception handler
 │           └── ResourceNotFoundException.java
 │
 ├── frontend/
-│   ├── Dockerfile                          # Multi-stage build (Node → nginx)
-│   └── src/                               # React + Vite source
+│   ├── Dockerfile                           # Multi-stage build (Node → nginx Alpine)
+│   └── src/                                # React + Vite source
 │
-├── docker-compose.yml                      # Local development stack
-├── docker-compose.prod.yml                 # Production stack (Docker Hub images)
-├── env.example                             # Environment variable template
+├── docker-compose.yml                       # Local dev stack (builds from source)
+├── docker-compose.prod.yml                  # Production stack (Docker Hub images)
+├── env.example                              # Environment variable template
 └── README.md
 ```
 
 ---
 
-## 🐳 Docker Hub — Quick Deploy
+## 🤖 AI Recommendations — Groq API
 
-The fastest way to run VitaTrack is to pull the pre-built images directly from Docker Hub — **no build step required**.
+VitaTrack integrates **[Groq](https://groq.com/)** to deliver instant, personalized fitness and health recommendations based on the user's real data.
+
+### How it works
+
+1. User calls `GET /recommendations` with their JWT token
+2. Backend fetches their latest **activities** and **health metrics** from Firestore
+3. A structured prompt is built and sent to the **Groq API** (`llama-3.3-70b-versatile`)
+4. Groq returns a personalized recommendation in under a second (LPU-based inference)
+5. The result is returned directly to the frontend
+
+### Why Groq?
+
+| Feature | Benefit |
+|---|---|
+| LPU-based inference | Sub-second response times |
+| Free tier available | No upfront cost for development |
+| `llama-3.3-70b-versatile` | High-quality health & fitness reasoning |
+| Simple REST API | Easy Spring Boot integration |
+
+### Example recommendation output
+
+```
+Based on your recent activity log (3 running sessions, avg 42 min) and health
+metrics (BMI: 24.1, heart rate: 68 bpm), here are your recommendations:
+
+1. Recovery: Your resting heart rate is healthy. Add one rest day between sessions.
+2. Intensity: Increase session duration by 5 min/week to build endurance safely.
+3. Hydration: At ~360 kcal/session, aim for 2.5L of water daily.
+4. Progress: Your BMI is in the healthy range — keep your current routine for
+   measurable results within 3 weeks.
+```
+
+---
+
+## 🐳 Docker Hub — Deploy in 2 minutes
+
+VitaTrack is distributed entirely via **Docker Hub**. No Java, no Node.js, no build step required — just Docker.
 
 ### Images
 
-| Service | Docker Hub Image |
-|---|---|
-| Backend | `achoyatte2025/vitatrack-backend:latest` |
-| Frontend | `achoyatte2025/vitatrack-frontend:latest` |
+| Service | Image | Tag |
+|---|---|---|
+| Backend | `achoyatte2025/vitatrack-backend` | `latest` |
+| Frontend | `achoyatte2025/vitatrack-frontend` | `latest` |
 
-### Pull the images manually
+🔗 **Docker Hub:** [hub.docker.com/u/achoyatte2025](https://hub.docker.com/u/achoyatte2025)
 
-```bash
-docker pull achoyatte2025/vitatrack-backend:latest
-docker pull achoyatte2025/vitatrack-frontend:latest
-```
+---
 
-### One-command deployment with Docker Hub images
-
-**1. Create your `.env` file:**
+### Step 1 — Configure environment variables
 
 ```bash
-cp env.example .env
-# Then fill in your values (see Environment Variables section)
+# Download the template
+curl -o .env https://raw.githubusercontent.com/ACHOYATTE2025/Vitatrack/main/env.example
+
+# Or create it manually:
+cat > .env <<EOF
+JWT_KEY=your-secret-key-minimum-256-bits-long-here
+FIREBASE_CREDENTIALS={"type":"service_account","project_id":"your-project",...}
+GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+EOF
 ```
 
-**2. Use `docker-compose.prod.yml` which references Docker Hub images directly:**
+### Step 2 — Create `docker-compose.prod.yml`
 
 ```yaml
-# docker-compose.prod.yml
 version: "3.9"
 
 services:
@@ -204,100 +281,103 @@ services:
     restart: unless-stopped
 ```
 
-**3. Start the stack:**
+### Step 3 — Pull and start
 
 ```bash
+docker pull achoyatte2025/vitatrack-backend:latest
+docker pull achoyatte2025/vitatrack-frontend:latest
+
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-**4. Verify the services are running:**
+### Step 4 — Verify
 
 ```bash
 docker compose -f docker-compose.prod.yml ps
-docker logs vitatrack-backend --tail 50
+docker logs vitatrack-backend --tail 50 -f
 ```
 
-**5. Access the app:**
+### Step 5 — Access
 
 | Service | URL |
 |---|---|
-| Frontend | http://localhost |
-| Backend API | http://localhost:8080/api/vitatrack/v1 |
-| Health check | http://localhost:8080/api/vitatrack/v1/actuator/health |
-
-### Stop the stack
+| 🌐 App | http://localhost |
+| ⚙️ API | http://localhost:8080/api/vitatrack/v1 |
+| 💚 Health | http://localhost:8080/api/vitatrack/v1/actuator/health |
 
 ```bash
+# Stop everything
 docker compose -f docker-compose.prod.yml down
 ```
 
 ---
 
+### Publish new versions to Docker Hub
+
+```bash
+# Build & tag both images
+docker build -t achoyatte2025/vitatrack-backend:latest \
+             -t achoyatte2025/vitatrack-backend:v1.1.0 \
+             ./backend
+
+docker build \
+  --build-arg VITE_API_URL=http://localhost:8080/api/vitatrack/v1 \
+  -t achoyatte2025/vitatrack-frontend:latest \
+  -t achoyatte2025/vitatrack-frontend:v1.1.0 \
+  ./frontend
+
+# Login and push
+docker login
+docker push achoyatte2025/vitatrack-backend:latest
+docker push achoyatte2025/vitatrack-backend:v1.1.0
+docker push achoyatte2025/vitatrack-frontend:latest
+docker push achoyatte2025/vitatrack-frontend:v1.1.0
+```
+
+> 💡 Use semantic version tags (`v1.0.0`, `v1.1.0`) alongside `latest` so users can pin to a stable release.
+
+---
+
 ## ⚙️ Local Setup (from source)
 
-Use this approach if you want to modify the code and rebuild.
+For development and testing with live code reloading.
 
 ### Prerequisites
 
-- Java 17+
-- Maven 3.8+
+- Java 17+ · Maven 3.8+
 - Node.js 18+
 - Docker & Docker Compose
-- A Firebase project with **Firestore enabled**
-- `serviceAccountKey.json` from Firebase Console → Project Settings → Service Accounts
+- Firebase project with **Firestore enabled (Native mode)**
+- `serviceAccountKey.json` — Firebase Console → Project Settings → Service Accounts
+- Groq API key — [console.groq.com](https://console.groq.com/)
 
-### Option A — Docker Compose (recommended)
+### Option A — Full Docker build (recommended)
 
 ```bash
-# Clone the repository
 git clone https://github.com/ACHOYATTE2025/Vitatrack.git
 cd Vitatrack
-
-# Configure environment variables
-cp env.example .env
-# Fill in JWT_KEY, FIREBASE_CREDENTIALS, and GROQ_API_KEY in .env
-
-# Build and start all services
+cp env.example .env          # Fill in your values
 docker compose up --build -d
-
-# Follow logs
-docker compose logs -f
+# App: http://localhost
 ```
 
-App available at: **http://localhost**
-
-### Option B — Run services individually
-
-**Backend:**
+### Option B — Services individually
 
 ```bash
+# Backend
 cd backend
-
 # Place serviceAccountKey.json in src/main/resources/
-
-# Export environment variables (Linux/macOS)
-export JWT_KEY="your-256-bit-minimum-secret-key"
-export GROQ_API_KEY="your-groq-api-key"
-
-# Windows PowerShell
-$env:JWT_KEY="your-256-bit-minimum-secret-key"
-
-# Start
+export JWT_KEY="your-secret-key"
+export GROQ_API_KEY="your-groq-key"
 mvn spring-boot:run
-# API: http://localhost:8080/api/vitatrack/v1
-```
+# → http://localhost:8080/api/vitatrack/v1
 
-**Frontend:**
-
-```bash
+# Frontend (new terminal)
 cd frontend
 npm install
-
-# Create .env.local
 echo "VITE_API_URL=http://localhost:8080/api/vitatrack/v1" > .env.local
-
 npm run dev
-# App: http://localhost:5173
+# → http://localhost:5173
 ```
 
 ---
@@ -307,22 +387,12 @@ npm run dev
 | Variable | Required | Description |
 |---|---|---|
 | `JWT_KEY` | ✅ Always | Secret key for signing JWT tokens (minimum 256 bits) |
-| `FIREBASE_CREDENTIALS` | ✅ Production | Full JSON content of `serviceAccountKey.json` |
-| `GROQ_API_KEY` | ✅ Always | API key for Groq AI integration |
+| `FIREBASE_CREDENTIALS` | ✅ Always | Full JSON content of `serviceAccountKey.json` |
+| `GROQ_API_KEY` | ✅ Always | API key from [console.groq.com](https://console.groq.com/) |
 
-**Local development:** place `serviceAccountKey.json` in `backend/src/main/resources/` — the app loads it automatically.
+> **Local dev shortcut:** place `serviceAccountKey.json` in `backend/src/main/resources/` — the app auto-loads it without needing `FIREBASE_CREDENTIALS`.
 
-**Production (Railway / Docker):** paste the entire JSON content of `serviceAccountKey.json` as the value of `FIREBASE_CREDENTIALS`.
-
-> ⚠️ Never commit `serviceAccountKey.json` or your `.env` file to Git. Both are already listed in `.gitignore`.
-
-**`env.example` template:**
-
-```env
-JWT_KEY=vitatrack-secret-key-256-bits-minimum-length-required-here
-FIREBASE_CREDENTIALS={"type":"service_account","project_id":"your-project",...}
-GROQ_API_KEY=your-groq-api-key-here
-```
+> ⚠️ Never commit `serviceAccountKey.json` or `.env`. Both are in `.gitignore`.
 
 ---
 
@@ -330,10 +400,7 @@ GROQ_API_KEY=your-groq-api-key-here
 
 **Base URL:** `/api/vitatrack/v1`
 
-All protected routes require:
-```
-Authorization: Bearer <jwt_token>
-```
+All protected routes require: `Authorization: Bearer <jwt_token>`
 
 ### Authentication
 
@@ -360,11 +427,17 @@ Authorization: Bearer <jwt_token>
 | `GET` | `/health/{id}` | 🔒 JWT | Get a single metric by ID |
 | `DELETE` | `/health/{id}` | 🔒 JWT | Delete a health metric |
 
+### AI Recommendations (Groq)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/recommendations` | 🔒 JWT | Get personalized AI recommendations based on user data |
+
 ### System
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/actuator/health` | Public | Application health check (used by Docker) |
+| `GET` | `/actuator/health` | Public | Health check (used by Docker healthcheck) |
 
 ---
 
@@ -374,89 +447,56 @@ Authorization: Bearer <jwt_token>
 
 ```json
 // Request
-{
-  "username": "johndoe",
-  "email": "john@example.com",
-  "password": "mypassword123"
-}
+{ "username": "johndoe", "email": "john@example.com", "password": "mypassword123" }
 
 // Response 201
-{
-  "status": 201,
-  "message": "Account created successfully for john@example.com",
-  "data": ""
-}
+{ "status": 201, "message": "Account created successfully for john@example.com", "data": "" }
 ```
 
 ### `POST /auth/login`
 
 ```json
 // Response 200
-{
-  "status": 200,
-  "message": "Login successful",
-  "data": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyLWlkIn0..."
-}
+{ "status": 200, "message": "Login successful", "data": "eyJhbGciOiJIUzI1NiJ9..." }
 ```
-
-> Use the token from `data` as a Bearer token on all protected routes.
 
 ### `POST /activity`
 
 ```json
 // Request
-{
-  "type": "running",
-  "durationMinutes": 45,
-  "caloriesBurned": 380.5,
-  "notes": "Morning run in the park"
-}
+{ "type": "running", "durationMinutes": 45, "caloriesBurned": 380.5, "notes": "Morning run" }
 
 // Response 201
-{
-  "status": 201,
-  "message": "Activity logged successfully",
-  "data": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-}
+{ "status": 201, "message": "Activity logged successfully", "data": "a1b2c3d4-..." }
 ```
 
 ### `POST /health`
 
 ```json
 // Request
-{
-  "weightKg": 75.5,
-  "heightCm": 178.0,
-  "heartRate": 68,
-  "systolic": 120,
-  "diastolic": 80,
-  "notes": "Morning check-in"
-}
+{ "weightKg": 75.5, "heightCm": 178.0, "heartRate": 68, "systolic": 120, "diastolic": 80 }
 
-// Response 201 — BMI is auto-computed from weightKg and heightCm
+// Response 201 — BMI auto-computed from weightKg and heightCm
+{ "status": 201, "message": "Health metric recorded successfully", "data": "f7e8d9c0-..." }
+```
+
+### `GET /recommendations`
+
+```json
+// Response 200
 {
-  "status": 201,
-  "message": "Health metric recorded successfully",
-  "data": "f7e8d9c0-a1b2-3456-cdef-789012345678"
+  "status": 200,
+  "message": "AI recommendations generated successfully",
+  "data": "Based on your data (3 running sessions, BMI 24.1, HR 68 bpm):\n1. Add a rest day between runs.\n2. Increase session duration by 5 min/week.\n3. Aim for 2.5L of water daily."
 }
 ```
 
-### Error Response
+### Error Responses
 
 ```json
-// 404 Not Found
-{
-  "status": 404,
-  "message": "Activity not found with id: abc-123",
-  "data": null
-}
-
-// 403 Forbidden
-{
-  "status": 403,
-  "message": "Access denied: you do not own this resource",
-  "data": null
-}
+{ "status": 404, "message": "Activity not found with id: abc-123", "data": null }
+{ "status": 403, "message": "Access denied: you do not own this resource", "data": null }
+{ "status": 401, "message": "JWT token is expired or invalid", "data": null }
 ```
 
 ---
@@ -467,97 +507,42 @@ Authorization: Bearer <jwt_token>
 Firestore
 ├── users/
 │   └── {userId}/
-│       ├── id          (string)   UUID
-│       ├── username    (string)
-│       ├── email       (string)
-│       ├── password    (string)   BCrypt hash — never plain text
-│       ├── role        (string)   "USER"
-│       ├── active      (boolean)
-│       └── createdAt   (string)   ISO-8601
+│       ├── id, username, email
+│       ├── password      BCrypt hash — never plain text
+│       ├── role          "USER"
+│       ├── active        boolean
+│       └── createdAt     ISO-8601
 │
 ├── activities/
 │   └── {activityId}/
-│       ├── id              (string)
-│       ├── userId          (string)   foreign key → users/{userId}
-│       ├── type            (string)   running | cycling | swimming | ...
-│       ├── durationMinutes (integer)
-│       ├── caloriesBurned  (double)
-│       ├── notes           (string)   optional
-│       └── loggedAt        (string)   ISO-8601
+│       ├── id, userId    → users/{userId}
+│       ├── type          running | cycling | swimming | ...
+│       ├── durationMinutes, caloriesBurned
+│       ├── notes         optional
+│       └── loggedAt      ISO-8601
 │
 └── health_metrics/
     └── {metricId}/
-        ├── id          (string)
-        ├── userId      (string)   foreign key → users/{userId}
-        ├── weightKg    (double)
-        ├── heightCm    (double)
-        ├── bmi         (double)   auto-computed: weight / (height in m)²
-        ├── heartRate   (integer)  bpm
-        ├── systolic    (integer)  mmHg
-        ├── diastolic   (integer)  mmHg
-        ├── notes       (string)   optional
-        └── recordedAt  (string)   ISO-8601
+        ├── id, userId    → users/{userId}
+        ├── weightKg, heightCm
+        ├── bmi           auto-computed: weight / (height in m)²
+        ├── heartRate     bpm
+        ├── systolic, diastolic   mmHg
+        ├── notes         optional
+        └── recordedAt    ISO-8601
 ```
 
 ---
 
 ## 🔒 Security
 
-- Passwords are hashed with **BCrypt** before storage — plain text is never persisted
-- JWT tokens are signed with **HMAC-SHA256** and expire after **24 hours**
-- Every protected route validates the token via `JwtAuthFilter` (extends `OncePerRequestFilter`) before reaching the controller
-- **Ownership is enforced at the service layer** — users can only read or delete their own resources
-- `serviceAccountKey.json` is excluded from Git via `.gitignore`
-- DNS configured to `8.8.8.8 / 8.8.4.4 / 1.1.1.1` in Docker containers to ensure stable connectivity to Google APIs
-- **CORS** restricts allowed origins in production to the registered frontend URL
-
----
-
-## 🚀 Deployment
-
-### Backend — Railway
-
-```bash
-# 1. Push code to GitHub (without serviceAccountKey.json)
-# 2. Create a new Railway project and link your GitHub repository
-# 3. Add environment variables in the Railway dashboard:
-
-JWT_KEY=your-secret-key-256-bits-minimum
-FIREBASE_CREDENTIALS={"type":"service_account","project_id":"..."}  # full JSON
-GROQ_API_KEY=your-groq-api-key
-
-# 4. Railway auto-detects Maven and deploys automatically on every push
-```
-
-### Frontend — Vercel
-
-```bash
-# 1. Import your GitHub repo on vercel.com
-# 2. Set the root directory to: frontend/
-# 3. Add the environment variable:
-
-VITE_API_URL=https://your-railway-app.up.railway.app/api/vitatrack/v1
-
-# 4. Vercel deploys automatically on every push to main
-```
-
-### Docker Hub — Publish your own images
-
-```bash
-# Build and tag backend
-docker build -t achoyatte2025/vitatrack-backend:latest ./backend
-
-# Build and tag frontend
-docker build \
-  --build-arg VITE_API_URL=https://your-api-url/api/vitatrack/v1 \
-  -t achoyatte2025/vitatrack-frontend:latest \
-  ./frontend
-
-# Push to Docker Hub
-docker login
-docker push achoyatte2025/vitatrack-backend:latest
-docker push achoyatte2025/vitatrack-frontend:latest
-```
+- Passwords hashed with **BCrypt** — plain text never stored
+- JWT signed with **HMAC-SHA256**, expires after **24 hours**
+- `JwtAuthFilter` (`OncePerRequestFilter`) validates every protected request before it reaches the controller
+- **Ownership enforced at the service layer** — users can only access their own data
+- `serviceAccountKey.json` excluded from Git via `.gitignore`
+- Docker DNS set to `8.8.8.8 / 8.8.4.4 / 1.1.1.1` for reliable access to Firestore and Groq APIs from containers
+- CORS restricts allowed origins in production
 
 ---
 
@@ -566,9 +551,9 @@ docker push achoyatte2025/vitatrack-frontend:latest
 **ACHO YATTE**
 
 - 🐙 GitHub: [@ACHOYATTE2025](https://github.com/ACHOYATTE2025)
-- 🐳 Docker Hub: [achoyatte2025](https://hub.docker.com/u/achoyatte2025)
+- 🐳 Docker Hub: [hub.docker.com/u/achoyatte2025](https://hub.docker.com/u/achoyatte2025)
 - 📦 Repository: [ACHOYATTE2025/Vitatrack](https://github.com/ACHOYATTE2025/Vitatrack)
 
 ---
 
-> Built with ☕ Java, ⚛️ React, 🔥 Firebase, and 🐳 Docker.
+> Built with ☕ Java · ⚛️ React · 🔥 Firebase · ⚡ Groq AI · 🐳 Docker
