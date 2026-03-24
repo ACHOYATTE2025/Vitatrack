@@ -53,8 +53,8 @@ VitaTrack lets users register, log physical activities (running, cycling, swimmi
 | Resource | Link |
 |---|---|
 | 🐙 GitHub Repository | [github.com/ACHOYATTE2025/Vitatrack](https://github.com/ACHOYATTE2025/Vitatrack) |
-| 🐳 Docker Hub — Backend | [hub.docker.com/r/achoyatte2025/vitatrack-backend](https://hub.docker.com/r/achoyatte2025/vitatrack-backend) |
-| 🐳 Docker Hub — Frontend | [hub.docker.com/r/achoyatte2025/vitatrack-frontend](https://hub.docker.com/r/achoyatte2025/vitatrack-frontend) |
+| 🐳 Docker Hub — Backend | [hub.docker.com/r/achoyatte2025/vitatrack-backend](https://hub.docker.com/achoyatte2025/vitatrack_project-backend) |
+| 🐳 Docker Hub — Frontend | [hub.docker.com/r/achoyatte2025/vitatrack-frontend](https://hub.docker.com/achoyatte2025/vitatrack_project-frontend) |
 | 🎥 Demo Video | ▶️ *[https://www.youtube.com/watch?v=6WcUkebgXEM]* |
 
 ### 🎥 Video Demonstration
