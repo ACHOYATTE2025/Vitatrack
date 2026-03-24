@@ -61,7 +61,7 @@ VitaTrack lets users register, log physical activities (running, cycling, swimmi
 
 > *(Replace `YOUR_VIDEO_ID` with your actual YouTube video ID once uploaded)*
 
-[![VitaTrack Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
+[![VitaTrack Demo](https://www.youtube.com/watch?v=6WcUkebgXEM)]
 
 > 🎙️ The demo covers: user registration, activity logging, health metric tracking, and AI-powered recommendations from the Groq API.
 
